@@ -545,4 +545,4 @@
 {!!Html::script('/js/custom.js')!!}
         <!-- Google maps -->
 {{--{!!Html::script('https://maps.googleapis.com/maps/api/js?key=AIzaSyA4UyBLPV2Op1BNg31pMhHI8UfNne6e6n8&callback=initMap')!!}--}}
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4UyBLPV2Op1BNg31pMhHI8UfNne6e6n8&callback=initMap&libraries=geometry"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4UyBLPV2Op1BNg31pMhHI8UfNne6e6n8&callback=initMap&libraries=geometry,places"></script>

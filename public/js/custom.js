@@ -2,7 +2,7 @@
  * Created by Ricardo Diez on 05/08/2016.
  */
 var common = {
-    random: function (minimo, maximo)
+    random: function (minimo, maximo)//funcion para generar numeros aleatorios
     {
         var numero = Math.floor( Math.random() * (maximo - minimo + 1) + minimo );
         return numero;
@@ -10,7 +10,9 @@ var common = {
 }
 var map;
 var i = 0;
-
+var polyline;
+var destinations = [];
+//calcular distancia entre un punta A y un puntoB del mapa
 var getKilometros = function(lat1,lon1,lat2,lon2) {
 
     rad = function(x) {return x*Math.PI/180;}
@@ -41,9 +43,6 @@ function initMap() {
 
     });
 
-    //Instancias Objeto de ventanas
-    var infoWindow = new google.maps.InfoWindow({map: map});
-
     // Try HTML5 geolocation.
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -66,43 +65,62 @@ function initMap() {
             //Crear una marka
             //Marca Actual
 
-            var titulo = 'Tu posición actual';
             var titulo = datosParkiller.clientes[0].nom_cliente+' '+datosParkiller.clientes[0].ape_cliente;
             //var icono = '/parkiller_test/public/img/blue-car.png';
             var icono = '/img/blue-car.png';
-            //var icono = '';
             var draggable = false;
             var marcadorActual  = crearMarkador(pos, map, titulo, icono, draggable);
 
             //Marca Bucle
+            var minDist=0;
+            var parkeroCercano;
             for (i = 0; i < datosParkiller.parkeros.length; i++) {
                 var parkero = {
                     lat: (position.coords.latitude)+arrayLat[common.random(0,3)],
                     lng: (position.coords.longitude)+arrayLong[common.random(0,3)]
                 };
 
+                //Metodo de calcular distancia entre un punto A y un punto B de google
                 //var sevilla = new google.maps.LatLng(pos.lat, pos.lng);
                 //var buenos_aires = new google.maps.LatLng(parkero.lat, parkero.lng);
                 //var distanciaGOOGLE = google.maps.geometry.spherical.computeDistanceBetween(sevilla, buenos_aires);
 
-                var distancia=getKilometros(pos.lat,pos.lng,parkero.lat,parkero.lng)
-                $("#parkero_"+datosParkiller.parkeros[i].id_parkero).html(distancia+' Km')
-                console.log(distancia+' Km');
-                //console.log(distanciaGOOGLE+' Km');
+                var distancia=getKilometros(pos.lat,pos.lng,parkero.lat,parkero.lng);
+
+                if(minDist==0 || minDist>distancia){
+                    minDist=distancia;
+                    datosParkiller.parkeros[i].lat=parkero.lat;
+                    datosParkiller.parkeros[i].lng=parkero.lng;
+                    parkeroCercano=datosParkiller.parkeros[i];
+                }
+                $("#parkero_"+datosParkiller.parkeros[i].id_parkero).html(distancia+' Km');
+
+
                 var tituloPark = datosParkiller.parkeros[i].nom_parkero+' '+datosParkiller.parkeros[i].ape_parkero ;
-                //var icono2 = '';
-                //var iconoPark = '/parkiller_test/public/img/people.png';
                 var iconoPark = '/img/people.png';
                 var draggablePark = false;
+
                 crearMarkador(parkero, map, tituloPark, iconoPark, draggablePark);
             }
 
+
+            destinations.push(new google.maps.LatLng(pos.lat, pos.lng));
+            destinations.push(new google.maps.LatLng(parkeroCercano.lat, parkeroCercano.lng));
+
+
             //Crear una ventana
             var infoWindow =  new google.maps.InfoWindow();
-            ventanaSobreMarca(marcadorActual, map, infoWindow);
-
+            var msg ='Hola, <strong>'+
+                datosParkiller.clientes[0].nom_cliente+
+                '</strong><br/>Tu parkero mas cercano es: '+
+                '<strong>'+
+                parkeroCercano.nom_parkero+
+                '</strong>'+
+                'Deseas conectar con el?'+
+                '<br/><button id="conectar_si" data-your-lat="'+pos.lat+'" data-your-lng="'+pos.lng+'" data-park-lat="'+parkeroCercano.lat+'" data-par-lng="'+parkeroCercano.lng+'" >Solicitar Parkero</button>.';
+            openInfoWindow(marcadorActual, map, infoWindow,msg);
+            ventanaSobreMarca(marcadorActual, map, infoWindow,msg);
             infoWindow.setPosition(pos);
-            infoWindow.setContent('Estas Son tus coodenadas latitude: '+position.coords.latitude+' longitude: '+position.coords.longitude );
 
             //centra el mapa con la posición que deseas
             map.setCenter(pos);
@@ -160,8 +178,8 @@ function crearMarkador(myLatLng, map, titulo, iconno, draggable) {
  param@:infoWindow ->
  */
 
-function ventanaSobreMarca(marker, map, infoWindow) {
-    google.maps.event.addListener(marker, 'dragend', function(){ openInfoWindow(marker, map, infoWindow); });
+function ventanaSobreMarca(marker, map, infoWindow,msg) {
+    google.maps.event.addListener(marker, 'click', function(){ openInfoWindow(marker, map, infoWindow,msg); });
 }//fin
 
 
@@ -171,17 +189,10 @@ function ventanaSobreMarca(marker, map, infoWindow) {
  param@:map        ->
  param@:infoWindow ->
  */
-function openInfoWindow(marker, map, infoWindow) {
-    animarToggleBounce(marker);
+function openInfoWindow(marker, map, infoWindow,msg) {
+    //animarToggleBounce(marker);
     var markerLatLng = marker.getPosition();
-
-    infoWindow.setContent([
-        '<strong>La posicion del marcador es:</strong><br/>',
-        markerLatLng.lat(),
-        ', ',
-        markerLatLng.lng(),
-        '<br/>Arrástrame para actualizar la tu posición.'
-    ].join(''));
+    infoWindow.setContent([msg].join(''));
     infoWindow.open(map, marker);
 }//fin
 
@@ -218,6 +229,19 @@ $(document).ready(function(){
         complete: function(){
 
         }
+    });
+
+    $(document).on('click','#conectar_si',function(){
+        var polylineOptions={
+            path:destinations,
+            strokeColor: '#FF0000',
+            strokeOpacity: 1.0,
+            strokeWeight: 3,
+            map: map
+        };
+
+        polyline = new google.maps.Polyline(polylineOptions);
+        polyline.setMap(map);
     });
 
 
