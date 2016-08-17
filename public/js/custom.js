@@ -126,11 +126,13 @@ function initMap() {
             map.setCenter(pos);
 
         }, function() {
+            var infoWindow =  new google.maps.InfoWindow();
             handleLocationError(true, infoWindow, map.getCenter());
         });
 
     } else {
         // Browser doesn't support Geolocation
+        var infoWindow =  new google.maps.InfoWindow();
         handleLocationError(false, infoWindow, map.getCenter());
     }
 }//fin del iniciador
